@@ -9,6 +9,7 @@ import playsound
 import threading
 import websocket
 import os
+import pyttsx3
 
 # now supoorts macd, one symbol pair, binance, 
 
@@ -27,7 +28,7 @@ class MonitorSymbolWithWS:
 
         self.symbol = symbol
         self.timeframe = timeframe
-        
+
         if proxy_type == None: 
             self.client = Client(api_key, api_secret)
         else:
@@ -47,6 +48,14 @@ class MonitorSymbolWithWS:
         df.set_index('timestamp', inplace=True)
 
         return df
+
+    #get the first symbol of the symbol pair, i.e. get BTC from BTCUSDT
+    def getSymbol1(self):
+        if self.symbol.endswith("USDT"):
+            symbol = self.symbol[:-4]
+        else:
+            symbol = self.symbol
+        return symbol
 
     def checkMacdCondition(self,m,s):
         res = ''
@@ -90,6 +99,9 @@ class MonitorSymbolWithWS:
             res = self.checkMacdCondition(historical_data['macd'],historical_data['signal'] )
 
             if res != '':
+                engine = pyttsx3.init()
+                engine.say(self.getSymbol1())
+                engine.runAndWait()
                 print( "\n!!!:",self.symbol," ",self.timeframe, " ",  res ," \a ", datetime.datetime.fromtimestamp(float(historical_data['t'].iloc[-1])/1000)," ", historical_data['c'].iloc[-1],
                     " macd:", "{:.2f}".format(historical_data['macd'].iloc[-1]), " signal:", "{:.2f}".format(historical_data['signal'].iloc[-1]) )
 

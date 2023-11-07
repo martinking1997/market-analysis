@@ -6,6 +6,8 @@ import playsound,pytz
 import datetime,time, threading
 import os
 from tzlocal import get_localzone
+import pyttsx3
+
 # Initialize the Binance client
 
 # now supoorts macd, one symbol pair, binance, 
@@ -35,6 +37,7 @@ class MonitorSymbolByPolling:
         self.timeframe = timeframe
         self.proxy_port = proxy_port
         
+        self.engine = pyttsx4.init()
         # 'https': 'socks5h://127.0.0.1:12345'
         if proxy_type == None: 
             self.client = Client(api_key, api_secret)
@@ -51,9 +54,9 @@ class MonitorSymbolByPolling:
         df = pd.DataFrame(klines, columns=['timestamp', 'o', 'h', 'l', 'c', 'v', 't', 'q', 'n','V','Q','T'] )
         df['timestamp'] = pd.to_datetime(df['t'], unit='ms')
         #print(type(df.iloc[-1]['timestamp']))
+
         df.set_index('timestamp', inplace=True)
-        #df.index = df.index.tz_localize(get_localzone())
-        #df.index = df.index.tz_convert(get_localzone())
+
         return df
 
     def checkMacdCondition(self,m,s):
@@ -68,8 +71,15 @@ class MonitorSymbolByPolling:
             res = res + "macd water DEAD fork"
 
         return res 
+    #get the first symbol of the symbol pair, i.e. get BTC from BTCUSDT
+    def getSymbol1(self):
+        if self.symbol.endswith("USDT"):
+            symbol = self.symbol[:-4]
+        else:
+            symbol = self.symbol
+        return symbol
 
-# Define the callback function for WebSocket data
+    # Define the callback function for WebSocket data
     def on_timer(self):
         historical_data = self._historical_data
         
@@ -89,6 +99,8 @@ class MonitorSymbolByPolling:
         #print(f"\nhere {historical_data.tail(3)}")
         #t = historical_data.tail(1)
         if res != '':
+            self.engine.say(self.getSymbol1())
+            self.engine.runAndWait()
             print( "\n!!!:",self.symbol," ",self.timeframe, " ",  res ," \a ", datetime.datetime.fromtimestamp(float(historical_data['t'].iloc[-1])/1000)," ", historical_data['c'].iloc[-1], 
                     " macd:", "{:.2f}".format(historical_data['macd'].iloc[-1]), " signal:", "{:.2f}".format(historical_data['signal'].iloc[-1]) ) 
         self._historical_data = historical_data
