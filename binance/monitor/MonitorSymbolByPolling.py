@@ -37,7 +37,6 @@ class MonitorSymbolByPolling:
         self.timeframe = timeframe
         self.proxy_port = proxy_port
         
-        self.engine = pyttsx4.init()
         # 'https': 'socks5h://127.0.0.1:12345'
         if proxy_type == None: 
             self.client = Client(api_key, api_secret)
@@ -99,8 +98,7 @@ class MonitorSymbolByPolling:
         #print(f"\nhere {historical_data.tail(3)}")
         #t = historical_data.tail(1)
         if res != '':
-            self.engine.say(self.getSymbol1())
-            self.engine.runAndWait()
+            pyttsx3.speak(self.getSymbol1())
             print( "\n!!!:",self.symbol," ",self.timeframe, " ",  res ," \a ", datetime.datetime.fromtimestamp(float(historical_data['t'].iloc[-1])/1000)," ", historical_data['c'].iloc[-1], 
                     " macd:", "{:.2f}".format(historical_data['macd'].iloc[-1]), " signal:", "{:.2f}".format(historical_data['signal'].iloc[-1]) ) 
         self._historical_data = historical_data
