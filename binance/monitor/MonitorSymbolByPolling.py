@@ -6,12 +6,12 @@ import playsound,pytz
 import datetime,time, threading
 import os
 from tzlocal import get_localzone
-import pyttsx3
-
+from monitor.Utility import Utility
 # Initialize the Binance client
 
 # now supoorts macd, one symbol pair, binance, 
 # it is better for timeframe >= 1h
+
 
 class MonitorSymbolByPolling:
     toSeconds={ '1m': 60,
@@ -24,27 +24,21 @@ class MonitorSymbolByPolling:
 
     def __init__(self, api_key =  None, api_secret = None, 
             symbol =  'BTCUSDT', timeframe =  '1h',
-            proxy_type = None, proxy_host = None, proxy_port  = None):
+            proxies ={}):
 
         self.api_key = api_key
         self.api_secret = api_secret 
 
-        self.proxy_type = proxy_type
-        self.proxy_host = proxy_host
-        self.proxy_port = proxy_port
+        self.proxies = proxies
 
-        self.symbol = symbol
-        self.timeframe = timeframe
-        self.proxy_port = proxy_port
+        self.symbol = symbol.lower()
+        self.timeframe = timeframe.lower()
         
+        self.utility = Utility
         # 'https': 'socks5h://127.0.0.1:12345'
-        if proxy_type == None: 
+        if len(proxies) == 0: 
             self.client = Client(api_key, api_secret)
         else:
-            proxies = {
-                'http': proxy_type+'://'+ proxy_host + ':' + str(proxy_port),
-                'https': proxy_type+'://'+ proxy_host + ':' + str(proxy_port)
-            }   
             self.client = Client(api_key, api_secret,{'proxies': proxies})
 
     # Function to fetch historical OHLCV data
@@ -62,17 +56,19 @@ class MonitorSymbolByPolling:
         res = ''
 
         if m.iloc[-1] < 0 and m.iloc[-1] >= m.iloc[-2] and m.iloc[-1]>= s.iloc[-1]:
-            playsound.playsound(os.path.join(os.path.dirname(__file__), 'zhangu.mp3'))
+            self.utility.play_mp3(os.path.join(os.path.dirname(__file__), 'attack.mp3'))
+            self.utility.play_mp3(os.path.join(os.path.dirname(__file__), self.getSymbol1()+"_m.mp3"))
             res = res + 'macd Underwater GOLDEN fork'
 
         if m.iloc[-1] > 0 and m.iloc[-1] <= m.iloc[-2] and m.iloc[-1] <= s.iloc[-1] :
-            playsound.playsound(os.path.join(os.path.dirname(__file__), 'mingjin.mp3'))
+            self.utility.play_mp3(os.path.join(os.path.dirname(__file__), 'retreat.mp3'))
+            self.utility.play_mp3(os.path.join(os.path.dirname(__file__), self.getSymbol1()+"_f.mp3"))
             res = res + "macd water DEAD fork"
 
         return res 
     #get the first symbol of the symbol pair, i.e. get BTC from BTCUSDT
     def getSymbol1(self):
-        if self.symbol.endswith("USDT"):
+        if self.symbol.endswith("usdt"):
             symbol = self.symbol[:-4]
         else:
             symbol = self.symbol
@@ -98,7 +94,6 @@ class MonitorSymbolByPolling:
         #print(f"\nhere {historical_data.tail(3)}")
         #t = historical_data.tail(1)
         if res != '':
-            pyttsx3.speak(self.getSymbol1())
             print( "\n!!!:",self.symbol," ",self.timeframe, " ",  res ," \a ", datetime.datetime.fromtimestamp(float(historical_data['t'].iloc[-1])/1000)," ", historical_data['c'].iloc[-1], 
                     " macd:", "{:.2f}".format(historical_data['macd'].iloc[-1]), " signal:", "{:.2f}".format(historical_data['signal'].iloc[-1]) ) 
         self._historical_data = historical_data
@@ -121,6 +116,6 @@ class MonitorSymbolByPolling:
         historical_data['signal'] = None
         #print(tt.to_string(index_format='%Y-%m-%d %H:%M:%S%z'))
         self._historical_data = historical_data
-        print("start fetch data of ",self.symbol,' ', self._historical_data.tail(1))
+        print("\nstart fetch data of ",self.symbol,"  ", self.timeframe)
         self.on_timer()
         

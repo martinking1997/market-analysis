@@ -1,15 +1,15 @@
 from binance.client import Client
+import urllib.parse
 import pandas as pd
 import talib
 import datetime,time
 import numpy as np
 from tzlocal import get_localzone
 import json
-import playsound
 import threading
 import websocket
 import os
-import pyttsx3
+from monitor.Utility import Utility
 
 # now supoorts macd, one symbol pair, binance, 
 
@@ -17,25 +17,21 @@ class MonitorSymbolWithWS:
 
     def __init__(self, api_key =  None, api_secret = None, 
             symbol =  'BTCUSDT', timeframe =  '5m',
-            proxy_type = None, proxy_host = None, proxy_port  = None):
+            proxies ={ } ):
 
         self.api_key = api_key
         self.api_secret = api_secret 
 
-        self.proxy_type = proxy_type
-        self.proxy_host = proxy_host
-        self.proxy_port = proxy_port
+        self.proxies = proxies
 
-        self.symbol = symbol
-        self.timeframe = timeframe
+        self.symbol = symbol.lower()
+        self.timeframe = timeframe.lower()
 
-        if proxy_type == None: 
+        self.utility = Utility
+
+        if len(proxies) == 0 : 
             self.client = Client(api_key, api_secret)
         else:
-            proxies = {
-                'http': proxy_type+'://'+ proxy_host + ':' + str(proxy_port),
-                'https': proxy_type+'://'+ proxy_host + ':' + str(proxy_port)
-            }   
             self.client = Client(api_key, api_secret,{'proxies': proxies})
 
     # Function to fetch historical OHLCV data
@@ -49,9 +45,9 @@ class MonitorSymbolWithWS:
 
         return df
 
-    #get the first symbol of the symbol pair, i.e. get BTC from BTCUSDT
+    #get the first symbol of the symbol pair, i.e. get btc from btcusdt
     def getSymbol1(self):
-        if self.symbol.endswith("USDT"):
+        if self.symbol.endswith("usdt"):
             symbol = self.symbol[:-4]
         else:
             symbol = self.symbol
@@ -61,11 +57,15 @@ class MonitorSymbolWithWS:
         res = ''
 
         if m.iloc[-1] < 0 and m.iloc[-1] >= m.iloc[-2] and m.iloc[-1]>= s.iloc[-1]:
-            playsound.playsound(os.path.join(os.path.dirname(__file__), "zhangu.mp3"))
+            self.utility.play_mp3(os.path.join(os.path.dirname(__file__), "attack.mp3"))
+            self.utility.play_mp3(os.path.join(os.path.dirname(__file__), self.getSymbol1()+"_m.mp3"))
+
             res = res + 'macd Underwater GOLDEN fork'
 
         if m.iloc[-1] > 0 and m.iloc[-1] <= m.iloc[-2] and m.iloc[-1] <= s.iloc[-1] :
-            playsound.playsound(os.path.join(os.path.dirname(__file__), "mingjin.mp3"))
+            self.utility.play_mp3(os.path.join(os.path.dirname(__file__), "retreat.mp3"))
+            self.utility.play_mp3(os.path.join(os.path.dirname(__file__), self.getSymbol1()+"_f.mp3"))
+            
             res = res + "macd water DEAD fork"
 
         return res 
@@ -99,10 +99,6 @@ class MonitorSymbolWithWS:
             res = self.checkMacdCondition(historical_data['macd'],historical_data['signal'] )
 
             if res != '':
-                pyttsx3.speak(self.getSymbol1())
-                #engine = pyttsx3.init()
-                #engine.say(self.getSymbol1())
-                #engine.runAndWait()
                 print( "\n!!!:",self.symbol," ",self.timeframe, " ",  res ," \a ", datetime.datetime.fromtimestamp(float(historical_data['t'].iloc[-1])/1000)," ", historical_data['c'].iloc[-1],
                     " macd:", "{:.2f}".format(historical_data['macd'].iloc[-1]), " signal:", "{:.2f}".format(historical_data['signal'].iloc[-1]) )
 
@@ -126,10 +122,13 @@ class MonitorSymbolWithWS:
         self._historical_data = historical_data
 
         ws = websocket.WebSocketApp(f'wss://fstream.binance.com/ws/{self.symbol.lower()}@kline_{self.timeframe}', on_open=self.on_open, on_close=self.on_close, on_message=self.on_message, on_error=self.on_error)
-        if self.proxy_type == None:
+        if len(self.proxies) == 0 or self.proxies.get ("https") is  None :
             ws.run_forever()
         else:
-            ws.run_forever(proxy_type='socks5h',http_proxy_host="127.0.0.1", http_proxy_port='12345')
+            turl = self.proxies.get ("https")
+            p_url = urllib.parse.urlparse(turl)
 
-        print('starting ',self.symbol,' ', self.timeframe)
+            ws.run_forever(proxy_type = p_url.scheme, http_proxy_host = p_url.hostname , http_proxy_port = p_url.port )
+
+        print('\nstarting ',self.symbol,' ', self.timeframe)
 
