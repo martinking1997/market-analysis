@@ -1,11 +1,18 @@
 # market-analysis
 This project records some auxiliary analysis tools for cryptocurrency transactions in development.
+
 Currently not yet perfect, continuously updating
+
 Currently, only Binance exchange data reading is supported.
+
 Support two methods: polling (large time period, generally greater than 5m) and websocket (small time period, generally used for less than 5m).
+
 Support proxy methods, including the commonly used socks5h method.
+
 Male (multi) and female (short) voice prompts supporting currencies, as well as drumbeats indicating buy signals (positive) and bullish tones indicating sell signals (negative);
+
 Support macd indicators, and additional indicators will be added as needed in the future.
+
 #Requirements
 * binance_connector==3.4.0
 * numpy==1.21.5
